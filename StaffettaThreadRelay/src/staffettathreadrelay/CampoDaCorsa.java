@@ -4,6 +4,14 @@
  */
 package staffettathreadrelay;
 
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Dimension;
+import javax.swing.BorderFactory;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.SwingUtilities;
+
 /**
  *
  * @author onorati.nicolo
@@ -11,12 +19,35 @@ package staffettathreadrelay;
 public class CampoDaCorsa extends javax.swing.JFrame {
     
     private static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(CampoDaCorsa.class.getName());
+    private static final int RUNNER_TARGET = 99;
+
+    private final Object pauseLock = new Object();
+    private volatile boolean inCorsa;
+    private volatile boolean inPausa;
+    private volatile boolean stopRichiesto;
+    private volatile int delayPassoMs = 50;
+    private final int[] progressi = new int[4];
+    private final Thread[] runnerThreads = new Thread[4];
+    private Thread coordinatore;
+    private JPanel[] piste;
+    private JLabel[] runnerIcons;
+    private JLabel[] runnerValues;
 
     /**
      * Creates new form CampoDaCorsa
      */
     public CampoDaCorsa() {
         initComponents();
+        inizializzaStatoUI();
+        configuraAzioni();
+        addComponentListener(new java.awt.event.ComponentAdapter() {
+            @Override
+            public void componentResized(java.awt.event.ComponentEvent e) {
+                for (int i = 0; i < progressi.length; i++) {
+                    aggiornaRunnerUI(i, progressi[i]);
+                }
+            }
+        });
     }
 
     /**
@@ -28,21 +59,374 @@ public class CampoDaCorsa extends javax.swing.JFrame {
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
 
+        panelMain = new javax.swing.JPanel();
+        panelCenter = new javax.swing.JPanel();
+        panelLanes = new javax.swing.JPanel();
+        lane1 = new javax.swing.JPanel();
+        runner1Icon = new javax.swing.JLabel();
+        lane2 = new javax.swing.JPanel();
+        runner2Icon = new javax.swing.JLabel();
+        lane3 = new javax.swing.JPanel();
+        runner3Icon = new javax.swing.JLabel();
+        lane4 = new javax.swing.JPanel();
+        runner4Icon = new javax.swing.JLabel();
+        panelInfo = new javax.swing.JPanel();
+        infoRunner1 = new javax.swing.JPanel();
+        labelRunner1 = new javax.swing.JLabel();
+        valueRunner1 = new javax.swing.JLabel();
+        infoRunner2 = new javax.swing.JPanel();
+        labelRunner2 = new javax.swing.JLabel();
+        valueRunner2 = new javax.swing.JLabel();
+        infoRunner3 = new javax.swing.JPanel();
+        labelRunner3 = new javax.swing.JLabel();
+        valueRunner3 = new javax.swing.JLabel();
+        infoRunner4 = new javax.swing.JPanel();
+        labelRunner4 = new javax.swing.JLabel();
+        valueRunner4 = new javax.swing.JLabel();
+        panelControls = new javax.swing.JPanel();
+        labelSpeed = new javax.swing.JLabel();
+        comboSpeed = new javax.swing.JComboBox<>();
+        buttonAvvia = new javax.swing.JButton();
+        buttonSospende = new javax.swing.JButton();
+        buttonRiprende = new javax.swing.JButton();
+        buttonFerma = new javax.swing.JButton();
+
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
+        setTitle("ThreadRelay");
+        setMinimumSize(new java.awt.Dimension(980, 520));
+
+        panelMain.setBorder(javax.swing.BorderFactory.createEmptyBorder(8, 8, 8, 8));
+        panelMain.setLayout(new java.awt.BorderLayout(10, 10));
+
+        panelCenter.setLayout(new java.awt.BorderLayout(10, 0));
+
+        panelLanes.setBorder(javax.swing.BorderFactory.createEmptyBorder(6, 6, 6, 6));
+        panelLanes.setLayout(new java.awt.GridLayout(4, 1, 0, 10));
+
+        lane1.setBorder(javax.swing.BorderFactory.createTitledBorder("Runner 1"));
+        lane1.setLayout(new java.awt.BorderLayout());
+        pista1 = creaPista(runner1Icon, new Color(52, 152, 219), "R1");
+        lane1.add(pista1, java.awt.BorderLayout.CENTER);
+        panelLanes.add(lane1);
+
+        lane2.setBorder(javax.swing.BorderFactory.createTitledBorder("Runner 2"));
+        lane2.setLayout(new java.awt.BorderLayout());
+        pista2 = creaPista(runner2Icon, new Color(46, 204, 113), "R2");
+        lane2.add(pista2, java.awt.BorderLayout.CENTER);
+        panelLanes.add(lane2);
+
+        lane3.setBorder(javax.swing.BorderFactory.createTitledBorder("Runner 3"));
+        lane3.setLayout(new java.awt.BorderLayout());
+        pista3 = creaPista(runner3Icon, new Color(241, 196, 15), "R3");
+        lane3.add(pista3, java.awt.BorderLayout.CENTER);
+        panelLanes.add(lane3);
+
+        lane4.setBorder(javax.swing.BorderFactory.createTitledBorder("Runner 4"));
+        lane4.setLayout(new java.awt.BorderLayout());
+        pista4 = creaPista(runner4Icon, new Color(231, 76, 60), "R4");
+        lane4.add(pista4, java.awt.BorderLayout.CENTER);
+        panelLanes.add(lane4);
+
+        panelCenter.add(panelLanes, java.awt.BorderLayout.CENTER);
+
+        panelInfo.setBorder(javax.swing.BorderFactory.createCompoundBorder(
+            javax.swing.BorderFactory.createMatteBorder(0, 1, 0, 0, new java.awt.Color(220, 220, 220)),
+            javax.swing.BorderFactory.createEmptyBorder(10, 10, 10, 10)
+        ));
+        panelInfo.setPreferredSize(new java.awt.Dimension(180, 0));
+        panelInfo.setLayout(new java.awt.GridLayout(4, 1, 0, 10));
+
+        infoRunner1.setLayout(new java.awt.BorderLayout(8, 0));
+        labelRunner1.setText("Runner 1");
+        valueRunner1.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
+        valueRunner1.setText("0");
+        infoRunner1.add(labelRunner1, java.awt.BorderLayout.WEST);
+        infoRunner1.add(valueRunner1, java.awt.BorderLayout.EAST);
+        panelInfo.add(infoRunner1);
+
+        infoRunner2.setLayout(new java.awt.BorderLayout(8, 0));
+        labelRunner2.setText("Runner 2");
+        valueRunner2.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
+        valueRunner2.setText("0");
+        infoRunner2.add(labelRunner2, java.awt.BorderLayout.WEST);
+        infoRunner2.add(valueRunner2, java.awt.BorderLayout.EAST);
+        panelInfo.add(infoRunner2);
+
+        infoRunner3.setLayout(new java.awt.BorderLayout(8, 0));
+        labelRunner3.setText("Runner 3");
+        valueRunner3.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
+        valueRunner3.setText("0");
+        infoRunner3.add(labelRunner3, java.awt.BorderLayout.WEST);
+        infoRunner3.add(valueRunner3, java.awt.BorderLayout.EAST);
+        panelInfo.add(infoRunner3);
+
+        infoRunner4.setLayout(new java.awt.BorderLayout(8, 0));
+        labelRunner4.setText("Runner 4");
+        valueRunner4.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
+        valueRunner4.setText("0");
+        infoRunner4.add(labelRunner4, java.awt.BorderLayout.WEST);
+        infoRunner4.add(valueRunner4, java.awt.BorderLayout.EAST);
+        panelInfo.add(infoRunner4);
+
+        panelCenter.add(panelInfo, java.awt.BorderLayout.EAST);
+
+        panelMain.add(panelCenter, java.awt.BorderLayout.CENTER);
+
+        panelControls.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 4, 4, 4));
+        panelControls.setLayout(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 10, 8));
+
+        labelSpeed.setText("Velocita:");
+        panelControls.add(labelSpeed);
+
+        comboSpeed.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Slow", "Regular", "Fast" }));
+        comboSpeed.setPreferredSize(new java.awt.Dimension(120, 28));
+        panelControls.add(comboSpeed);
+
+        buttonAvvia.setText("Avvia");
+        panelControls.add(buttonAvvia);
+
+        buttonSospende.setText("Sospende");
+        panelControls.add(buttonSospende);
+
+        buttonRiprende.setText("Riprende");
+        panelControls.add(buttonRiprende);
+
+        buttonFerma.setText("Ferma");
+        panelControls.add(buttonFerma);
+
+        panelMain.add(panelControls, java.awt.BorderLayout.SOUTH);
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
         layout.setHorizontalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 400, Short.MAX_VALUE)
+            .addComponent(panelMain, javax.swing.GroupLayout.DEFAULT_SIZE, 980, Short.MAX_VALUE)
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 300, Short.MAX_VALUE)
+            .addComponent(panelMain, javax.swing.GroupLayout.DEFAULT_SIZE, 520, Short.MAX_VALUE)
         );
 
         pack();
+        setLocationRelativeTo(null);
+
+        piste = new JPanel[] { pista1, pista2, pista3, pista4 };
+        runnerIcons = new JLabel[] { runner1Icon, runner2Icon, runner3Icon, runner4Icon };
+        runnerValues = new JLabel[] { valueRunner1, valueRunner2, valueRunner3, valueRunner4 };
     }// </editor-fold>//GEN-END:initComponents
+
+    private javax.swing.JPanel creaPista(javax.swing.JLabel marker, Color colore, String testo) {
+        javax.swing.JPanel pista = new javax.swing.JPanel(null);
+        pista.setBackground(new Color(248, 248, 248));
+        pista.setBorder(BorderFactory.createEmptyBorder(8, 8, 8, 8));
+
+        marker.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        marker.setText(testo);
+        marker.setOpaque(true);
+        marker.setForeground(Color.WHITE);
+        marker.setBackground(colore);
+        marker.setPreferredSize(new Dimension(42, 30));
+        marker.setBorder(BorderFactory.createLineBorder(colore.darker()));
+        marker.setSize(marker.getPreferredSize());
+
+        pista.add(marker);
+        riposizionaMarker(marker, pista, 0);
+        return pista;
+    }
+
+    private void inizializzaStatoUI() {
+        buttonSospende.setEnabled(false);
+        buttonRiprende.setEnabled(false);
+        buttonFerma.setEnabled(false);
+        aggiornaVelocitaDaSelettore();
+    }
+
+    private void configuraAzioni() {
+        buttonAvvia.addActionListener(e -> avviaSimulazione());
+        buttonSospende.addActionListener(e -> sospendiSimulazione());
+        buttonRiprende.addActionListener(e -> riprendiSimulazione());
+        buttonFerma.addActionListener(e -> fermaSimulazione());
+        comboSpeed.addActionListener(e -> aggiornaVelocitaDaSelettore());
+    }
+
+    private void aggiornaVelocitaDaSelettore() {
+        Object selezione = comboSpeed.getSelectedItem();
+        if ("Slow".equals(selezione)) {
+            delayPassoMs = 90;
+        } else if ("Fast".equals(selezione)) {
+            delayPassoMs = 20;
+        } else {
+            delayPassoMs = 50;
+        }
+    }
+
+    private void avviaSimulazione() {
+        if (inCorsa) {
+            return;
+        }
+        resetGraficaCorsa();
+        inCorsa = true;
+        inPausa = false;
+        stopRichiesto = false;
+        buttonAvvia.setEnabled(false);
+        comboSpeed.setEnabled(false);
+        buttonSospende.setEnabled(true);
+        buttonRiprende.setEnabled(false);
+        buttonFerma.setEnabled(true);
+
+        coordinatore = new Thread(this::eseguiStaffetta, "coordinatore-staffetta");
+        coordinatore.start();
+    }
+
+    private void eseguiStaffetta() {
+        try {
+            for (int i = 0; i < runnerThreads.length && !stopRichiesto; i++) {
+                avviaRunner(i);
+                if (i < runnerThreads.length - 1) {
+                    attendiSoglia(i, 90);
+                }
+            }
+            for (Thread runner : runnerThreads) {
+                if (runner != null) {
+                    runner.join();
+                }
+            }
+        } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
+        } finally {
+            inCorsa = false;
+            inPausa = false;
+            SwingUtilities.invokeLater(() -> {
+                buttonAvvia.setEnabled(true);
+                comboSpeed.setEnabled(true);
+                buttonSospende.setEnabled(false);
+                buttonRiprende.setEnabled(false);
+                buttonFerma.setEnabled(false);
+            });
+        }
+    }
+
+    private void avviaRunner(int indiceRunner) {
+        Thread runner = new Thread(() -> eseguiRunner(indiceRunner), "runner-" + (indiceRunner + 1));
+        runnerThreads[indiceRunner] = runner;
+        runner.start();
+    }
+
+    private void eseguiRunner(int indiceRunner) {
+        while (!stopRichiesto && progressi[indiceRunner] < RUNNER_TARGET) {
+            attendiSePausa();
+            if (stopRichiesto) {
+                break;
+            }
+            progressi[indiceRunner]++;
+            int avanzamento = progressi[indiceRunner];
+            SwingUtilities.invokeLater(() -> aggiornaRunnerUI(indiceRunner, avanzamento));
+            try {
+                Thread.sleep(delayPassoMs);
+            } catch (InterruptedException ex) {
+                if (stopRichiesto) {
+                    Thread.currentThread().interrupt();
+                    break;
+                }
+            }
+        }
+
+        if (!stopRichiesto && progressi[indiceRunner] >= RUNNER_TARGET) {
+            SwingUtilities.invokeLater(() -> runnerValues[indiceRunner].setText("Fine"));
+        }
+    }
+
+    private void attendiSePausa() {
+        synchronized (pauseLock) {
+            while (inPausa && !stopRichiesto) {
+                try {
+                    pauseLock.wait();
+                } catch (InterruptedException ex) {
+                    if (stopRichiesto) {
+                        Thread.currentThread().interrupt();
+                        return;
+                    }
+                }
+            }
+        }
+    }
+
+    private void attendiSoglia(int indiceRunner, int soglia) throws InterruptedException {
+        while (!stopRichiesto && progressi[indiceRunner] < soglia) {
+            Thread.sleep(5);
+        }
+    }
+
+    private void sospendiSimulazione() {
+        if (!inCorsa || inPausa) {
+            return;
+        }
+        inPausa = true;
+        buttonSospende.setEnabled(false);
+        buttonRiprende.setEnabled(true);
+    }
+
+    private void riprendiSimulazione() {
+        if (!inCorsa || !inPausa) {
+            return;
+        }
+        synchronized (pauseLock) {
+            inPausa = false;
+            pauseLock.notifyAll();
+        }
+        buttonSospende.setEnabled(true);
+        buttonRiprende.setEnabled(false);
+    }
+
+    private void fermaSimulazione() {
+        if (!inCorsa) {
+            return;
+        }
+        stopRichiesto = true;
+        synchronized (pauseLock) {
+            inPausa = false;
+            pauseLock.notifyAll();
+        }
+        for (Thread runner : runnerThreads) {
+            if (runner != null) {
+                runner.interrupt();
+            }
+        }
+        if (coordinatore != null) {
+            coordinatore.interrupt();
+        }
+        inCorsa = false;
+        buttonAvvia.setEnabled(true);
+        comboSpeed.setEnabled(true);
+        buttonSospende.setEnabled(false);
+        buttonRiprende.setEnabled(false);
+        buttonFerma.setEnabled(false);
+    }
+
+    private void resetGraficaCorsa() {
+        for (int i = 0; i < progressi.length; i++) {
+            progressi[i] = 0;
+            runnerValues[i].setText("0");
+            aggiornaRunnerUI(i, 0);
+            runnerThreads[i] = null;
+        }
+    }
+
+    private void aggiornaRunnerUI(int indiceRunner, int avanzamento) {
+        runnerValues[indiceRunner].setText(String.valueOf(avanzamento));
+        riposizionaMarker(runnerIcons[indiceRunner], piste[indiceRunner], avanzamento);
+    }
+
+    private void riposizionaMarker(JLabel marker, JPanel pista, int avanzamento) {
+        int larghezzaMarker = marker.getPreferredSize().width;
+        int altezzaMarker = marker.getPreferredSize().height;
+        int margine = 8;
+        int larghezzaUtile = Math.max(1, pista.getWidth() - (margine * 2) - larghezzaMarker);
+        int x = margine + (int) Math.round((avanzamento / (double) RUNNER_TARGET) * larghezzaUtile);
+        int y = Math.max(margine, (pista.getHeight() - altezzaMarker) / 2);
+        marker.setBounds(x, y, larghezzaMarker, altezzaMarker);
+        pista.repaint();
+    }
 
     /**
      * @param args the command line arguments
@@ -70,5 +454,40 @@ public class CampoDaCorsa extends javax.swing.JFrame {
     }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
+    private javax.swing.JButton buttonAvvia;
+    private javax.swing.JButton buttonFerma;
+    private javax.swing.JButton buttonRiprende;
+    private javax.swing.JButton buttonSospende;
+    private javax.swing.JComboBox<String> comboSpeed;
+    private javax.swing.JPanel infoRunner1;
+    private javax.swing.JPanel infoRunner2;
+    private javax.swing.JPanel infoRunner3;
+    private javax.swing.JPanel infoRunner4;
+    private javax.swing.JLabel labelRunner1;
+    private javax.swing.JLabel labelRunner2;
+    private javax.swing.JLabel labelRunner3;
+    private javax.swing.JLabel labelRunner4;
+    private javax.swing.JLabel labelSpeed;
+    private javax.swing.JPanel lane1;
+    private javax.swing.JPanel lane2;
+    private javax.swing.JPanel lane3;
+    private javax.swing.JPanel lane4;
+    private javax.swing.JPanel panelCenter;
+    private javax.swing.JPanel panelControls;
+    private javax.swing.JPanel panelInfo;
+    private javax.swing.JPanel panelLanes;
+    private javax.swing.JPanel panelMain;
+    private javax.swing.JPanel pista1;
+    private javax.swing.JPanel pista2;
+    private javax.swing.JPanel pista3;
+    private javax.swing.JPanel pista4;
+    private javax.swing.JLabel runner1Icon;
+    private javax.swing.JLabel runner2Icon;
+    private javax.swing.JLabel runner3Icon;
+    private javax.swing.JLabel runner4Icon;
+    private javax.swing.JLabel valueRunner1;
+    private javax.swing.JLabel valueRunner2;
+    private javax.swing.JLabel valueRunner3;
+    private javax.swing.JLabel valueRunner4;
     // End of variables declaration//GEN-END:variables
 }
