@@ -8,6 +8,25 @@ package staffettathreadrelay;
  *
  * @author onorati.nicolo
  */
-public class Atleta {
-    
+public class Atleta extends Thread {
+    private Staffetta staffetta;
+    private int metriPercorsi = 0;
+
+    public Atleta(Staffetta staffetta) {
+        this.staffetta = staffetta;
+    }
+
+    @Override
+    public void run() {
+        while (metriPercorsi < 100) {
+            metriPercorsi++;
+            try {
+                Thread.sleep(50);
+            } catch (InterruptedException e) {}
+        }
+    }
+
+    public int getMetriPercorsi() {
+        return metriPercorsi;
+    }
 }
